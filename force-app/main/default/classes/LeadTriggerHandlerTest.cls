@@ -93,10 +93,11 @@ public class LeadTriggerHandlerTest {
     Lead  l2 = new Lead(LastName = 'Test123', Company = 'Test Comp', Email = 'L2@TEST.COM');
     leadList.add(l1);
     leadList.add(l2);
-    insert leadList;
+    //insert leadList;
 
      Test.startTest();
-     LeadTriggerHandler.handleLeadAutoConvert(leadList);
+     insert leadList;
+     //LeadTriggerHandler.handleLeadAutoConvert(leadList);
      Test.stopTest();
     //  Database.LeadConvert lc = new Database.LeadConvert();
     //      lc.setLeadId(l.Id);
@@ -114,10 +115,11 @@ public class LeadTriggerHandlerTest {
     List <Lead> leadList = new List<Lead>();
     Lead  lead2 = new Lead(LastName = 'Testlead123', Company = 'Test Comp', Email = 'L2@TEST.COM');
     leadList.add(lead2);
-    insert leadList;
+    //insert leadList;
 
      Test.startTest();
-     LeadTriggerHandler.handleLeadAutoConvert(leadList);
+     insert leadList;
+     //LeadTriggerHandler.handleLeadAutoConvert(leadList);
      Test.stopTest();
      Lead convertedLead = [SELECT Id, IsConverted FROM Lead WHERE Id = :lead2.Id];
      System.assertEquals(false, convertedLead.IsConverted, 'Lead should not have been converted');
@@ -129,10 +131,11 @@ public class LeadTriggerHandlerTest {
     List <Lead> leadList = new List<Lead>();
     Lead mLead = new Lead(LastName = 'Testlead123', Company = 'Test Comp', Email = 'TL3@TEST.COM');
     leadList.add(mlead);
-    insert leadList;
+    //insert leadList;
 
     Test.startTest();
-     LeadTriggerHandler.handleLeadAutoConvert(leadList);
+    insert leadList;
+     //LeadTriggerHandler.handleLeadAutoConvert(leadList);
      Test.stopTest();
      Lead convertedLead = [SELECT Id, IsConverted FROM Lead WHERE Id = :mLead.Id];
      System.assertEquals(false, convertedLead.IsConverted, 'Lead should not have been converted');
@@ -147,11 +150,13 @@ public class LeadTriggerHandlerTest {
     leadList.add(l2);
     insert leadList;
 
-    l2.Email = 'TL@TEST.COM';
-     update l2;
+    // l2.Email = 'TL@TEST.COM';
+    //  update l2;
 
      Test.startTest();
-     LeadTriggerHandler.handleLeadAutoConvert(leadList);
+     l2.Email = 'TL@TEST.COM';
+     update l2;
+    // LeadTriggerHandler.handleLeadAutoConvert(leadList);
      Test.stopTest();
     
    
