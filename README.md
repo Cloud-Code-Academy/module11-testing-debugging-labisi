@@ -1,3 +1,4 @@
+[![Open in Visual Studio Code](https://classroom.github.com/assets/open-in-vscode-2e0aaae1b6195c2367325f4f02e2d04e9abb55f0b24a779b69b11b9e10269abc.svg)](https://classroom.github.com/online_ide?assignment_repo_id=17125254&assignment_repo_type=AssignmentRepo)
 # Developer Kickstart: Testing and Debugging
 This repository is an essential segment of the Developer Kickstart curriculum at Cloud Code Academy. Tailored specifically for up-and-coming Salesforce developers, this module plunges into the crucial aspects of testing and debugging, underscoring the necessity of robust test classes, effective debugging strategies, and the maintenance of high code coverage.
 

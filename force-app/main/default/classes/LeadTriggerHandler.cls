@@ -32,7 +32,8 @@ public with sharing class LeadTriggerHandler {
 	 */
 	public static void handleTitleNormalization(List<Lead> leadsToNormalize) {
 		for (Lead ld : leadsToNormalize) {
-			if (ld.title == 'vp' || ld.title.contains('v.p.') || ld.title.contains('vice president')) {
+			if (ld.Title != null) {
+			if (ld.title.contains('vp') || ld.title.contains('v.p.') || ld.title.contains('vice president')) {
 				ld.Title = 'Vice President';
 			} else if (
 				ld.title.contains('mgr') ||
@@ -40,12 +41,13 @@ public with sharing class LeadTriggerHandler {
 				ld.title.contains('head of department')
 			) {
 				ld.Title = 'Manager';
-			} else if (ld.title.contains('exec') || ld.title == 'chief' || ld.title.contains('head')) {
+			} else if (ld.title.contains('exec') || ld.title.contains('chief') || ld.title.contains('head')) {
 				ld.Title = 'Executive';
-			} else if (ld.title.contains('assist') || ld.title.contains('deputy') || ld.title == 'jr') {
+			} else if (ld.title.contains('assist') || ld.title.contains('deputy') || ld.title.contains ('jr')) {
 				ld.Title = 'Assistant';
 			}
 		}
+	}
 	}
 
 	/* 
@@ -61,19 +63,19 @@ public with sharing class LeadTriggerHandler {
 	 */
 	public static void handleAutoLeadScoring(List<Lead> leadsToScore) {
 		for (Lead ld : leadsToScore) {
-			Integer score = 10;
+			Integer score = 0;
 
 			// Check and add points based on the specified conditions
 			if (ld.LeadSource == 'Website' && ld.Email != null) {
-				score = 3;
+				score += 3;
 			}
 
 			if (ld.Phone != null) {
-				score = 5;
+				score += 5;
 			}
 
 			if (ld.Industry == 'Technology') {
-				score = 10;
+				score += 10;
 			}
 
 			ld.Lead_Score__c = score; // Set the computed score back to the lead
@@ -103,43 +105,89 @@ public with sharing class LeadTriggerHandler {
 	 * - One of the errors is recursion related. Check if the lead is already converted or check if the email has changed/is null
 	 * - One of the errors is map related. Make sure you are using the correct contact map key
 	 */
-	public static void handleLeadAutoConvert(List<Lead> leads) {
-		// Step 1: Gather all lead emails
-        Map<Id,String> leadToEmailMap = new Map<Id,String>();
-		for (Lead lead : leads) {
-			leadToEmailMap.put(lead.Id, lead.Email);
-		}
-
-		// Step 2: Find matching contacts based on email
-		Map<String, Contact> emailToContactMap = new Map<String, Contact>();
-		for (Contact c : [SELECT Id, Email, AccountId FROM Contact WHERE Email IN :leadToEmailMap.values()]) {
-			if (!emailToContactMap.containsKey(c.Email)) {
-				emailToContactMap.put(c.Email, c);
-			} else {
-				// If we found another contact with the same email, we don't auto-convert.
-				// So we remove the email from the map.
-				emailToContactMap.remove(c.Email);
-			}
-		}
-
-		// Step 3: Auto-convert leads
+	public static void handleLeadAutoConvert(List<Lead> leadsToConvert, Map<String, Contact> existingEmails) {
 		List<Database.LeadConvert> leadConverts = new List<Database.LeadConvert>();
 		LeadStatus convertStatus = [SELECT Id, MasterLabel FROM LeadStatus WHERE IsConverted = TRUE LIMIT 1];
-		for (Id leadId : leadToEmailMap.keySet()) {
-            String leadEmail = leadToEmailMap.get(leadId);
-			if (emailToContactMap.containsKey(leadEmail)) {
+		
+		for (Lead lead : leadsToConvert) {
+			if (existingEmails.containsKey(lead.Email)) {
+				Contact matchingContact = existingEmails.get(lead.Email);
 				Database.LeadConvert lc = new Database.LeadConvert();
-				lc.setLeadId(leadId);
-				lc.setContactId(emailToContactMap.get(leadEmail).Id); // Use existing Contact Id
-				lc.setAccountId(emailToContactMap.get(leadEmail).AccountId); // Use existing Account Id
-				lc.setDoNotCreateOpportunity(true); // Assuming we don't want to create an opportunity
-				lc.setConvertedStatus(convertStatus.MasterLabel); // Set the converted status
+				lc.setLeadId(lead.Id);
+				lc.setContactId(matchingContact.Id);
+				lc.setAccountId(matchingContact.AccountId);
+				lc.setDoNotCreateOpportunity(true);
+				lc.setConvertedStatus(convertStatus.MasterLabel);
 				leadConverts.add(lc);
 			}
 		}
-
+		
 		if (!leadConverts.isEmpty()) {
-			List<Database.LeadConvertResult> lcrs = Database.convertLead(leadConverts);
+			Database.convertLead(leadConverts);
 		}
 	}
+	// public static void handleLeadAutoConvert(List<Lead> leads) {
+	// 	// Step 1: Gather eligible leads (new leads or leads with an updated email)
+	// 	Map<Id, String> leadToEmailMap = new Map<Id, String>();
+	// 	for (Lead lead : leads) {
+	// 		// Skip if lead is already converted or if email is null
+	// 		if (lead.IsConverted || lead.Email == null) {
+	// 			continue;
+	// 		}
+	// 		if(Trigger.new == null){
+	// 			continue;
+	// 		}
+	// 		// For update operations, only process if the email has changed
+	// 		//system.debug(trigger.isUpdate);
+	// 		if (Trigger.isUpdate)  {
+	// 			Lead oldLead = (Lead) Trigger.oldMap.get(lead.Id);
+	// 			if (oldLead != null && oldLead.Email == lead.Email) {
+	// 				continue;
+	// 			}
+	// 		}
+			
+	// 		leadToEmailMap.put(lead.Id, lead.Email);
+	// 	}
+		
+	// 	// If there are no eligible leads, exit the method
+	// 	if (leadToEmailMap.isEmpty()) {
+	// 		return;
+	// 	}
+		
+	// 	// Step 2: Find matching contacts based on email
+	// 	Map<String, Contact> emailToContactMap = new Map<String, Contact>();
+	// 	for (Contact c : [SELECT Id, Email, AccountId FROM Contact WHERE Email IN :leadToEmailMap.values()]) {
+	// 		// If more than one contact exists for an email, remove it
+	// 		if (emailToContactMap.containsKey(c.Email)) {
+	// 			emailToContactMap.remove(c.Email);
+	// 		} else {
+	// 			emailToContactMap.put(c.Email, c);
+	// 		}
+	// 	}
+		
+	// 	// Step 3: Auto-convert leads for which a single matching Contact is identified
+	// 	List<Database.LeadConvert> leadConverts = new List<Database.LeadConvert>();
+	// 	// Retrieve the lead status used for conversion
+	// 	LeadStatus convertStatus = [SELECT Id, MasterLabel FROM LeadStatus WHERE IsConverted = TRUE LIMIT 1];
+		
+	// 	for (Id leadId : leadToEmailMap.keySet()) {
+	// 		String leadEmail = leadToEmailMap.get(leadId);
+	// 		if (emailToContactMap.containsKey(leadEmail)) {
+	// 			Database.LeadConvert lc = new Database.LeadConvert();
+	// 			lc.setLeadId(leadId);
+	// 			lc.setContactId(emailToContactMap.get(leadEmail).Id);
+	// 			lc.setAccountId(emailToContactMap.get(leadEmail).AccountId);
+	// 			lc.setDoNotCreateOpportunity(true);
+	// 			lc.setConvertedStatus(convertStatus.MasterLabel);
+	// 			leadConverts.add(lc);
+	// 		}
+	// 	}
+		
+	// 	// Step 4: Convert eligible leads
+	// 	if (!leadConverts.isEmpty()) {
+	// 		Database.convertLead(leadConverts);
+	// 	}
+	// }
+	
+	
 }
